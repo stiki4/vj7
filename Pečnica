@@ -1,0 +1,289 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_Oven
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new FrmPecnica());
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_Oven
+{
+    enum ProgramRada
+    {
+        Pečenje_150C,
+        Pečenje_180C,
+        Pečenje_200C
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_Oven
+{
+    public partial class FrmPecnica : Form
+    {
+        Pecnica pecnica = new Pecnica();
+        public FrmPecnica()
+        {
+            InitializeComponent();
+        }
+
+        public void Osvjezi()
+        {
+            btn150C.Enabled = pecnica.Program150_Enabled;
+            btn180C.Enabled = pecnica.Program180_Enabled;
+            btn200C.Enabled = pecnica.Program200_Enabled;
+
+            btnOnOff.Enabled = pecnica.OnOff_Enabled;
+            btnStart.Enabled = pecnica.Start_Enabled;
+            btnIstekloVrijeme.Enabled = pecnica.IstekloVrijeme_Enabled;
+            btnOhladiPecnicu.Enabled = pecnica.OhladiPecnicu_Enabled;
+
+            txtStatus.Text = pecnica.TrenutnoStanje.ToString();
+
+        }
+
+        private void FrmPerilica_Load(object sender, EventArgs e)
+        {
+            Osvjezi();
+        }
+
+
+
+        private void btnOnOff_Click(object sender, EventArgs e)
+        {
+            pecnica.ObradiDogadjaj(Pecnica.Dogadjaj.StisnutGumbOnOff);
+            Osvjezi();
+        }
+
+        private void btn150C_Click(object sender, EventArgs e)
+        {
+            pecnica.ObradiDogadjaj(Pecnica.Dogadjaj.OdabranProgramPecenja);
+            Osvjezi();
+        }
+
+        private void btn180C_Click(object sender, EventArgs e)
+        {
+            pecnica.ObradiDogadjaj(Pecnica.Dogadjaj.OdabranProgramPecenja);
+            Osvjezi();
+        }
+
+        private void btn200C_Click(object sender, EventArgs e)
+        {
+            pecnica.ObradiDogadjaj(Pecnica.Dogadjaj.OdabranProgramPecenja);
+            Osvjezi();
+        }
+
+        private void btnStart_Click(object sender, EventArgs e)
+        {
+            pecnica.ObradiDogadjaj(Pecnica.Dogadjaj.StisnustGumbStart);
+            Osvjezi();
+        }
+
+        private void btnIstekloVrijeme_Click(object sender, EventArgs e)
+        {
+            pecnica.ObradiDogadjaj(Pecnica.Dogadjaj.IstekloVrijemePecenja);
+            Osvjezi();
+        }
+
+        private void btnOhladiPecnicu_Click(object sender, EventArgs e)
+        {
+            pecnica.ObradiDogadjaj(Pecnica.Dogadjaj.PotrebnoOhladitiPecnicu);
+            Osvjezi();
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_Oven
+{
+    partial class Pecnica
+    {
+        public string NazivPecnice { get; set; }
+        public ProgramRada Program { get; set; }
+
+        public bool OnOff_Enabled {  get { return TrenutnoStanje == Stanje.Upaljena || TrenutnoStanje == Stanje.Ugasena || TrenutnoStanje == Stanje.Hladenjegotovo; } }
+
+        public bool Start_Enabled { get { return TrenutnoStanje == Stanje.ProgramOdabran; } }
+
+        public bool IstekloVrijeme_Enabled { get { return TrenutnoStanje == Stanje.PecenjeZapoceto; } }
+
+        public bool OhladiPecnicu_Enabled { get { return TrenutnoStanje == Stanje.PecenjeZavrseno; } }
+
+        public bool Program150_Enabled { get { return TrenutnoStanje == Stanje.Upaljena || TrenutnoStanje == Stanje.PecenjeZapoceto; } }
+
+        public bool Program180_Enabled { get { return TrenutnoStanje == Stanje.Upaljena || TrenutnoStanje == Stanje.PecenjeZapoceto; } }
+
+        public bool Program200_Enabled { get { return TrenutnoStanje == Stanje.Upaljena || TrenutnoStanje == Stanje.PecenjeZapoceto; } }
+
+        public Pecnica()
+        {
+            NazivPecnice = "Electrolux 14232";
+            DefinirajMatricuPrijelazaStanja();
+        }
+
+        public void Upali()
+        {
+
+        }
+
+        public void Ugasi()
+        {
+
+        }
+
+        public void OdaberiProgram(ProgramRada program)
+        {
+            Program = program;
+
+        }
+
+        public void ZapocniPecenje()
+        {
+
+        }
+
+        public void OznaciKaoZavrseno()
+        {
+
+        }
+
+        public void OhladiPecnicu()
+        {
+
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_Oven
+{
+    partial class Pecnica
+    {
+        public enum Stanje
+        {
+            Ugasena,
+            Upaljena,
+            ProgramOdabran,
+            PecenjeZapoceto,
+            PecenjeZavrseno,
+            Hladenjegotovo
+        }
+
+        public enum Dogadjaj
+        {
+            StisnutGumbOnOff,
+            OdabranProgramPecenja,
+            StisnustGumbStart,
+            IstekloVrijemePecenja,
+            PotrebnoOhladitiPecnicu
+        }
+
+        public Stanje TrenutnoStanje { get; set; }
+
+        private Action[,] strojStanja;
+
+        public void ObradiDogadjaj(Dogadjaj dogadjaj)
+        {
+            this.strojStanja[(int)this.TrenutnoStanje, (int)dogadjaj].Invoke();
+        }
+
+        private void DefinirajMatricuPrijelazaStanja()
+        {
+            TrenutnoStanje = Stanje.Ugasena;
+
+            strojStanja = new Action [6,5]
+            {
+        //StisnutGumbOnOff     OdabranProgramPecenja   StisnustGumbStart  IstekloVrijemePecenja  PotrebnoOhladitiPecnicu
+                {StisnustGumbOnOff,     null,                   null,               null,                   null }, //Ugasena
+                {StisnustGumbOnOff,     OdabranProgramPecenja,  null,               null,                   null }, //Upaljena
+                {null,                  null,                   StisnustGumbStart,  null,                   null }, //ProgramOdabran
+                {null,                  OdabranProgramPecenja,  null,               IstekloVrijemePecenja,  null }, //PecenjeZapoceto
+                {null,                  null,                   null,               null,                   PotrebnoOhladitiPecnicu }, //PecenjeZavrseno
+                {StisnustGumbOnOff,     null,                   null,               null,                   null }, //HladenjeGotovo
+            };
+        }
+
+        private void StisnustGumbOnOff()
+        {
+            if (TrenutnoStanje == Stanje.Upaljena)
+            {
+                TrenutnoStanje = Stanje.Ugasena;
+            }
+            else if (TrenutnoStanje == Stanje.Ugasena)
+            {
+                TrenutnoStanje = Stanje.Upaljena;
+            }
+            else if (TrenutnoStanje == Stanje.Hladenjegotovo)
+            {
+                TrenutnoStanje = Stanje.Ugasena;
+            }
+        }
+
+        private void OdabranProgramPecenja()
+        {
+            if (TrenutnoStanje == Stanje.PecenjeZapoceto)
+            {
+                TrenutnoStanje = Stanje.ProgramOdabran;
+            }
+            else if (TrenutnoStanje == Stanje.Upaljena)
+            {
+                TrenutnoStanje = Stanje.ProgramOdabran;
+            }
+        }
+
+        private void StisnustGumbStart()
+        {
+            TrenutnoStanje = Stanje.PecenjeZapoceto;
+        }
+
+        private void IstekloVrijemePecenja()
+        {
+            TrenutnoStanje = Stanje.PecenjeZavrseno;
+        }
+
+        private void PotrebnoOhladitiPecnicu()
+        {
+            TrenutnoStanje = Stanje.Hladenjegotovo;
+        }
+    }
+}
