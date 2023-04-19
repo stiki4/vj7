@@ -1,0 +1,245 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_ServisniZahtjev
+{
+    partial class ServisniZahtjev
+    {
+        public string Opis { get; set; }
+        public DateTime DatumIzrade { get; set; }
+        public DateTime DatumZaprimanja { get; set; }
+        public DateTime DatumPocetka { get; set; }
+        public DateTime DatumZatvaranja { get; set; }
+        public DateTime DatumOdbijanja { get; set; }
+
+        public bool PodnesiZahtjev_Enabled { get { return TrenutnoStanje == Stanje.UIzradi; } }
+
+        public bool OdbijZahtjev_Enabled { get { return TrenutnoStanje == Stanje.Podnesen; } }
+
+        public bool ZaprimiZahtjev_Enabled { get { return TrenutnoStanje == Stanje.Podnesen; } }
+
+        public bool ZapocniServisiranje_Enabled { get { return TrenutnoStanje == Stanje.Zaprimljen; } }
+
+        public bool ZatvoriZahtjev_Enabled { get { return TrenutnoStanje == Stanje.UPostupku; } }
+
+        public ServisniZahtjev()
+        {
+            DefinirajMatricuPrijelazaStanja();
+        }
+
+        public void PodnesiZahtjev(string opis, DateTime datumIzrade)
+        {
+            Opis = opis;
+            DatumIzrade = datumIzrade;
+        }
+
+        public void ZaprimiZahtjev(DateTime datumZaprimanja)
+        {
+            DatumZaprimanja = DateTime.Now;
+        }
+
+        public void ZapocniServisiranje(DateTime datumPocetka)
+        {
+            DatumPocetka = datumPocetka;
+        }
+
+        internal void ZatvoriZahtjev(DateTime datumDovrsetka)
+        {
+            DatumZatvaranja = datumDovrsetka;
+        }
+
+        public void OdbijZahtjev()
+        {
+            DatumOdbijanja = DateTime.Now;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_ServisniZahtjev
+{
+    public partial class FrmServisniZahtjev : Form
+    {
+        private ServisniZahtjev _servisniZahtjev;
+        public FrmServisniZahtjev()
+        {
+            InitializeComponent();
+        }
+
+        public void Osvjezi()
+        {
+            btnOdbijZahtjev.Enabled = _servisniZahtjev.OdbijZahtjev_Enabled;
+            btnPodnesiZahtjev.Enabled = _servisniZahtjev.PodnesiZahtjev_Enabled;
+            btnZapocniServisiranje.Enabled = _servisniZahtjev.ZapocniServisiranje_Enabled;
+            btnZatvoriZahtjev.Enabled = _servisniZahtjev.ZatvoriZahtjev_Enabled;
+            btnZaprimiZahtjev.Enabled = _servisniZahtjev.ZaprimiZahtjev_Enabled;
+
+            txtStatusZahtjeva.Text = _servisniZahtjev.TrenutnoStanje.ToString();
+            txtOpisKvara.Enabled = _servisniZahtjev.PodnesiZahtjev_Enabled;
+            txtOpisKvara.Enabled = _servisniZahtjev.PodnesiZahtjev_Enabled;
+
+            dtpDatumPocetka.Enabled = _servisniZahtjev.ZapocniServisiranje_Enabled;
+            dtpDatumZatvaranja.Enabled = _servisniZahtjev.ZatvoriZahtjev_Enabled;
+
+            dtpDatumZaprimanja.Enabled = _servisniZahtjev.ZaprimiZahtjev_Enabled;
+        }
+        private void FrmServisniZahtjev_Load(object sender, EventArgs e)
+        {
+            _servisniZahtjev = new ServisniZahtjev();
+            Osvjezi();
+        }
+
+        private void btnPodnesiZahtjev_Click(object sender, EventArgs e)
+        {
+            _servisniZahtjev.PodnesiZahtjev(txtOpisKvara.Text, dtpDatumIzrade.Value);
+            _servisniZahtjev.ObradiDogadjaj(ServisniZahtjev.Dogadjaj.SviElementiPopunjeni);
+            Osvjezi();
+        }
+
+        private void btnZaprimiZahtjev_Click(object sender, EventArgs e)
+        {
+            _servisniZahtjev.ZaprimiZahtjev(dtpDatumZaprimanja.Value);
+            _servisniZahtjev.ObradiDogadjaj(ServisniZahtjev.Dogadjaj.PotvrdenPrimitakZahtjeva);
+            Osvjezi();
+        }
+
+        private void btnZapocniServisiranje_Click(object sender, EventArgs e)
+        {
+            _servisniZahtjev.ZapocniServisiranje(dtpDatumPocetka.Value);
+            _servisniZahtjev.ObradiDogadjaj(ServisniZahtjev.Dogadjaj.ZahtjevDosaoNaRed);
+            Osvjezi();
+        }
+
+        private void btnZatvoriZahtjev_Click(object sender, EventArgs e)
+        {
+            _servisniZahtjev.ZatvoriZahtjev(dtpDatumZatvaranja.Value);
+            _servisniZahtjev.ObradiDogadjaj(ServisniZahtjev.Dogadjaj.PopravciIzvršeni);
+            Osvjezi();
+        }
+
+        private void btnOdbijZahtjev_Click(object sender, EventArgs e)
+        {
+            _servisniZahtjev.OdbijZahtjev();
+            _servisniZahtjev.ObradiDogadjaj(ServisniZahtjev.Dogadjaj.PrekrseniUvjetiGarancije);
+            Osvjezi();
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_ServisniZahtjev
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new FrmServisniZahtjev());
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_ServisniZahtjev
+{
+    partial class ServisniZahtjev
+    {
+        public enum Stanje
+        {
+            UIzradi,
+            Podnesen,
+            Odbijen,
+            Zaprimljen,
+            UPostupku,
+            ZahtjevZatvoren
+        }
+
+        public enum Dogadjaj
+        {
+            SviElementiPopunjeni,
+            PotvrdenPrimitakZahtjeva,
+            PrekrseniUvjetiGarancije,
+            ZahtjevDosaoNaRed,
+            PopravciIzvršeni
+        }
+
+        public Stanje TrenutnoStanje { get; set; }
+
+        private Action[,] strojStanja;
+
+        public void ObradiDogadjaj (Dogadjaj dogadjaj)
+        {
+            this.strojStanja[(int)this.TrenutnoStanje, (int)dogadjaj].Invoke();
+        }
+
+        private void DefinirajMatricuPrijelazaStanja()
+        {
+            TrenutnoStanje = Stanje.UIzradi;
+
+            strojStanja = new Action[6, 5]
+            {
+         //SviElementiPopunjeni    PotvrđenPrimitakZahtjeva      PrekršeniUvjetiGarancije    ZahtjevDošaoNaRed            PopravciIzvršeni
+                { SviElementiPopunjeni,         null,                       null,                     null,                       null}, //UIzradi,
+                { null,                         PotvrdenPrimitakZahtjeva,   PrekrseniUvjetiGaranacije,null,                       null}, //Podnesen
+                { null,                         null,                       null,                     null,                       null}, //Odbijen
+                { null,                         null,                       null,                     ZahtjevDosaoNaRed,          null}, //Zaprimljen
+                { null,                         null,                       null,                     null,                       PopravciIzvrseni}, //Upostupku
+                { null,                         null,                       null,                     null,                       null}, //Zatvoren
+            };
+        }
+
+        private void SviElementiPopunjeni()
+        {
+            TrenutnoStanje = Stanje.Podnesen;
+        }
+
+        private void PotvrdenPrimitakZahtjeva()
+        {
+            TrenutnoStanje = Stanje.Zaprimljen;
+        }
+
+        private void PrekrseniUvjetiGaranacije()
+        {
+            TrenutnoStanje = Stanje.Odbijen;
+        }
+
+        private void ZahtjevDosaoNaRed()
+        {
+            TrenutnoStanje = Stanje.UPostupku;
+        }
+
+        private void PopravciIzvrseni()
+        {
+            TrenutnoStanje = Stanje.ZahtjevZatvoren;
+        }
+
+
+    }
+}
