@@ -1,0 +1,269 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_RentACar
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new RentACarForma());
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_RentACar
+{
+    public partial class RentACarForma : Form
+    {
+        private Vozilo _vozilo;
+        public RentACarForma()
+        {
+            InitializeComponent();
+        }
+
+        public void Osvjezi()
+        {
+            btnUciniRaspolozivim.Enabled = _vozilo.UciniRaspolozivim_Enabled;
+            btnAktivirajVozilo.Enabled = _vozilo.AktivirajVozilo_Enabled;
+            btnDeaktivirajVozilo.Enabled = _vozilo.DeaktivirajVozilo_Enabled;
+            btnRezerviraj.Enabled = _vozilo.RezervirajVozilo_Enabled;
+            btnPredaj.Enabled = _vozilo.PredajVozilo_Enabled;
+            btnPregledaj.Enabled = _vozilo.PregledajVozilo_Enabled;
+
+            txtPregledNapravio.Enabled = _vozilo.PregledajVozilo_Enabled;
+            txtStatusVozila.Text = _vozilo.TrenutnoStanje.ToString();
+
+            Application.DoEvents();
+
+        }
+
+        private void RentACarForma_Load(object sender, EventArgs e)
+        {
+            _vozilo = new Vozilo("VŽ-100-NO", "Ford focus, 1.6 tdi");
+
+            txtRegistracija.Text = _vozilo.Registracija;
+            txtOpisModela.Text = _vozilo.Model;
+            Osvjezi();
+        }
+
+        private void btnRezerviraj_Click(object sender, EventArgs e)
+        {
+            _vozilo.RezervirajVozilo();
+            txtDatumRezervacije.Text = _vozilo.DatumRezervacije.ToString();
+            _vozilo.ObradiDogadaj(Vozilo.Dogadaj.KlijentZatražioVozilo);
+            Osvjezi();
+        }
+
+        private void btnPredaj_Click(object sender, EventArgs e)
+        {
+            _vozilo.PredajVozilo();
+            txtDatumPredavanja.Text = _vozilo.DatumPredavanja.ToString();
+            _vozilo.ObradiDogadaj(Vozilo.Dogadaj.KlijentStigaoPoAuto);
+            Osvjezi();
+        }
+
+        private void btnPregledaj_Click(object sender, EventArgs e)
+        {
+            _vozilo.PregledajVozilo(txtPregledNapravio.Text);
+            _vozilo.ObradiDogadaj(Vozilo.Dogadaj.KlijentVraćaAuto);
+            Osvjezi();
+        }
+
+        private void btnUciniRaspolozivim_Click(object sender, EventArgs e)
+        {
+            _vozilo.UciniRaspolozivim();
+            _vozilo.ObradiDogadaj(Vozilo.Dogadaj.VoziloSpremnoZaUporabu);
+            Osvjezi();
+        }
+
+        private void btnAktivirajVozilo_Click(object sender, EventArgs e)
+        {
+            _vozilo.AktivirajVozilo();
+            _vozilo.ObradiDogadaj(Vozilo.Dogadaj.PopravljenKvar);
+            Osvjezi();
+        }
+
+        private void btnDeaktivirajVozilo_Click(object sender, EventArgs e)
+        {
+            _vozilo.DeaktivirajVozilo();
+            _vozilo.ObradiDogadaj(Vozilo.Dogadaj.Kvar);
+            txtDatumPredavanja.Clear();
+            txtDatumRezervacije.Clear();
+            txtPregledNapravio.Clear();
+            Osvjezi();
+        }
+    }
+}
+    
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_RentACar
+{
+    partial class Vozilo
+    {
+        public string Registracija { get; set; }
+        public string Model { get; set; }
+        public DateTime DatumRezervacije { get; set; }
+        public DateTime DatumPredavanja { get; set; }
+        public string PregledNapravio { get; set; }
+
+        public bool UciniRaspolozivim_Enabled { get { return TrenutnoStanje == Stanje.NaPregledu; } }
+
+        public bool AktivirajVozilo_Enabled { get { return TrenutnoStanje == Stanje.UKvaru; } }
+
+        public bool DeaktivirajVozilo_Enabled { get { return TrenutnoStanje == Stanje.Raspoloživ; } }   
+
+        public bool RezervirajVozilo_Enabled { get { return TrenutnoStanje == Stanje.Raspoloživ; } }
+
+        public bool PredajVozilo_Enabled { get { return TrenutnoStanje == Stanje.Rezerviran; } }
+
+        public bool PregledajVozilo_Enabled { get { return TrenutnoStanje == Stanje.UUporabi; } }
+
+        public Vozilo(string registracija, string model)
+        {
+            Registracija = registracija;
+            Model = model;
+            DefinirajMatricuPrijelazaStanja();
+        }
+
+        public void RezervirajVozilo()
+        {
+            DatumRezervacije = DateTime.Now;
+        }
+
+        public void PredajVozilo()
+        {
+            DatumPredavanja = DateTime.Now;
+        }
+
+        public void PregledajVozilo(string pregledNapravio)
+        {
+            PregledNapravio = pregledNapravio;
+        }
+
+        public void AktivirajVozilo()
+        {
+
+        }
+
+        public void DeaktivirajVozilo()
+        {
+
+        }
+
+        public void UciniRaspolozivim()
+        {
+
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_RentACar
+{
+    partial class Vozilo
+    {
+        public enum Stanje{
+            Raspoloživ, 
+            UKvaru,
+            Rezerviran,
+            UUporabi,
+            NaPregledu
+        }
+
+        public enum Dogadaj
+        {
+            Kvar,
+            PopravljenKvar,
+            KlijentZatražioVozilo,
+            KlijentStigaoPoAuto,
+            KlijentVraćaAuto,
+            VoziloSpremnoZaUporabu
+        }
+
+        public Stanje TrenutnoStanje;
+
+        public Action[,] strojStanja;
+
+        public void ObradiDogadaj(Dogadaj dogadaj)
+        {
+            this.strojStanja[(int)this.TrenutnoStanje, (int)dogadaj].Invoke();
+        }
+
+        private void DefinirajMatricuPrijelazaStanja()
+        {
+            TrenutnoStanje = Stanje.Raspoloživ;
+
+            strojStanja = new Action[5, 6]
+            {
+                //KVAR          POPRAVLJENKVAR          KLIJENTZATRAZIOV            KSTIGAOPOA          KVRACAAUTO         VOZILOSPREMNO
+                { Kvar,               null,               KlijentZatrazioVozilo,      null,                null,             null },  //RASPOLOZIV
+                { null,               PopravljenKvar,               null,             null,                null,             null }, //U KVARU
+                { null,               null,                         null,             KlijentStigaoPoAuto, null,             null },  //REZERVIRAN
+                { null,               null,                         null,             null,                KlijentVracaAuto, null },  //UUPORABI
+                { null,               null,                         null,             null,                null,             VoziloSpremnoZaUporabu }  //NAPREGLEDU
+            };
+
+        }
+
+        private void Kvar()
+        {
+            TrenutnoStanje = Stanje.UKvaru;
+        }
+
+        private void PopravljenKvar()
+        {
+            TrenutnoStanje = Stanje.Raspoloživ;
+        }
+
+        private void KlijentZatrazioVozilo()
+        {
+            TrenutnoStanje = Stanje.Rezerviran;
+        }
+
+        private void KlijentStigaoPoAuto()
+        {
+            TrenutnoStanje = Stanje.UUporabi;
+        }
+
+        private void KlijentVracaAuto()
+        {
+            TrenutnoStanje = Stanje.NaPregledu;
+
+        }
+
+        private void VoziloSpremnoZaUporabu()
+        {
+            TrenutnoStanje = Stanje.Raspoloživ;
+        }
+    }
+}
