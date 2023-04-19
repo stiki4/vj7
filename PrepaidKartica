@@ -1,0 +1,218 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_PrepaidKartica
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new PrepaidForm());
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_PrepaidKartica
+{
+    partial class PrepaidKartica
+    {
+        public enum Stanje
+        {
+            NijeAktivna,
+            Aktivna,
+            NemaSredstava
+        }
+
+        public enum Dogadjaj
+        {
+            ProdajaKartice,
+            UplaćenaSredstva,
+            NemaSredstava,
+            ImaSredstava
+        }
+
+        public Stanje TrenutnoStanje { get; set; }
+        private Action[,] strojStanja;
+
+        public void ObradiDogadjaj (Dogadjaj dogadaj)
+        {
+            this.strojStanja[(int)this.TrenutnoStanje, (int)dogadaj].Invoke();
+        }
+
+        private void DefinirajMatricuPrijelazaStanja()
+        {
+            TrenutnoStanje = Stanje.NijeAktivna;
+
+            strojStanja = new Action[3, 4]
+            {
+                //PRODAJAKARTICE   //UPLAĆENASREDSTVA  //NEMASREDSTVA   //IMASREDSTVA
+                {ProdajaKartice,              null,               null,           null },        //NIJEAKTIVNA
+                {null,              UplaćenaSredstva,               NemaSredstava,           ImaSredstava },        //AKTIVNA
+                {null,              UplaćenaSredstva,               null,           null}          //NEMASREDSTAVA
+
+            };
+        }
+
+        private void ProdajaKartice()
+        {
+            TrenutnoStanje = Stanje.Aktivna;
+        }
+
+        private void UplaćenaSredstva()
+        {
+            TrenutnoStanje = Stanje.Aktivna;
+       
+        }
+
+        private void NemaSredstava()
+        {
+            if (Iznos < 0)
+            {
+                TrenutnoStanje = Stanje.NemaSredstava;
+            }    
+            else
+            {
+                TrenutnoStanje = Stanje.Aktivna;
+            }
+        }
+
+        private void ImaSredstava()
+        {
+
+            TrenutnoStanje = Stanje.Aktivna;
+            
+        }
+
+    }
+
+
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_PrepaidKartica
+{
+    public partial class PrepaidForm : Form
+    {
+        private PrepaidKartica _kartica;
+
+        public PrepaidForm()
+        {
+            InitializeComponent();
+        }
+
+        private void OsvjeziSucelje()
+        {
+            txtIznosUplate.Enabled = _kartica.Uplati_Enabeld;
+            btnUplati.Enabled = _kartica.Uplati_Enabeld;
+
+            txtIznosIsplate.Enabled = _kartica.Isplati_Enabeld;
+            btnIsplati.Enabled = _kartica.Isplati_Enabeld;
+
+            btnAktiviraj.Enabled = _kartica.Aktiviraj_Enabeld;
+            txtIznos.Text = _kartica.Iznos.ToString();
+
+            txtStatus.Text = _kartica.TrenutnoStanje.ToString();
+
+            Application.DoEvents();
+        }
+
+        private void PrepaidForm_Load(object sender, EventArgs e)
+        {
+            _kartica = new PrepaidKartica("HR12312414213");
+            txtSerijskiBroj.Text = _kartica.SerijskiBroj;
+        }
+
+        private void btnAktiviraj_Click(object sender, EventArgs e)
+        {
+            _kartica.Aktiviraj();
+            _kartica.ObradiDogadjaj(PrepaidKartica.Dogadjaj.ProdajaKartice);
+            OsvjeziSucelje();
+        }
+
+        private void btnUplati_Click(object sender, EventArgs e)
+        {
+            double iznosUplate = double.Parse(txtIznosUplate.Text);
+            _kartica.Uplati(iznosUplate);
+            txtIznosUplate.Clear();
+            _kartica.ObradiDogadjaj(PrepaidKartica.Dogadjaj.UplaćenaSredstva);
+            OsvjeziSucelje();
+        }
+
+        private void btnIsplati_Click(object sender, EventArgs e)
+        {
+            double iznosIsplate = double.Parse(txtIznosIsplate.Text);
+            _kartica.Isplati(iznosIsplate);
+            txtIznosIsplate.Clear();
+            _kartica.ObradiDogadjaj(PrepaidKartica.Dogadjaj.NemaSredstava);
+            _kartica.ObradiDogadjaj(PrepaidKartica.Dogadjaj.ImaSredstava);
+            //_kartica.ObradiDogadjaj(PrepaidKartica.Dogadjaj.NemaSredstava);
+            OsvjeziSucelje();
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_PrepaidKartica
+{
+    partial class PrepaidKartica
+    {
+        public string SerijskiBroj { get; set; }
+        public double Iznos { get; set; }
+
+        public bool Aktiviraj_Enabeld { get { return TrenutnoStanje == Stanje.NijeAktivna; } }
+
+        public bool Uplati_Enabeld { get { return TrenutnoStanje == Stanje.Aktivna || TrenutnoStanje == Stanje.NemaSredstava; } }
+
+        public bool Isplati_Enabeld {  get { return TrenutnoStanje == Stanje.Aktivna; } }
+
+        public PrepaidKartica(string serijskiBroj)
+        {
+            SerijskiBroj = serijskiBroj;
+            DefinirajMatricuPrijelazaStanja();
+        }
+
+        public void Aktiviraj()
+        {
+            Iznos = 100;
+        }
+
+        public void Uplati(double iznosUplate)
+        {
+            Iznos += iznosUplate;
+        }
+
+        internal void Isplati(double iznosIsplate)
+        {
+            Iznos -= iznosIsplate;
+        }
+    }
+}
