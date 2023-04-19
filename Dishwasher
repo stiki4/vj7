@@ -1,0 +1,281 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_Dishwasher
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new FrmPerilica());
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_Dishwasher
+{
+    enum ProgramRada
+    {
+        Pranje_60min,
+        Pranje_90min,
+        Pranje_120min
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_Dishwasher
+{
+    partial class Perilica
+    {
+        public enum Stanje
+        {
+            Ugašena,
+            UMirovanju,
+            OdabranProgram,
+            PranjeUToku,
+            Pauzirano
+        }
+
+        public enum Dogadjaj
+        {
+            StisnutGumbOnOff,
+            PranjeJeZavršilo,
+            StisnustGumbZaProgram,
+            StisnustGumbStart,
+            StisniGumbPauseResume
+        }
+
+        public Stanje TrenutnoStanje { get; set; }
+        private Action[,] strojStanja;
+
+        public void ObradiDogadaj (Dogadjaj dogadaj)
+        {
+            this.strojStanja[(int)this.TrenutnoStanje, (int)dogadaj].Invoke();
+        }
+
+        private void DefinirajMatricuPrijelazaStanja()
+        {
+            TrenutnoStanje = Stanje.Ugašena;
+
+            strojStanja = new Action[5, 5]
+            {
+          //StisnustGumbOnOff    PranjeJeZavršilo       StisnustGumbZaProgram    StisnustGumbStart        StisniGumbPauseResume
+                { StisnutGumbOnOff,     null,                   null,                   null,                   null},   //Ugašena
+                { StisnutGumbOnOff,     null,                   StisnutGumbZaProgram,   null,                   null},   // UMirovanju
+                { null,                 null,                   null,                   StisnutGumbStart,       null},   //OdabranProgram
+                { null,                 PranjeJeZavršilo,       null,                   null,                   StisniGumbPauseResume},   //PranjeUToku
+                { null,                 null,                   null,                   null,                   StisniGumbPauseResume},   //Pauzirano
+            };
+        }
+
+        private void StisnutGumbOnOff()
+        {
+            if (TrenutnoStanje == Stanje.UMirovanju)
+            {
+                TrenutnoStanje = Stanje.Ugašena;
+            }
+            else if (TrenutnoStanje == Stanje.Ugašena)
+            {
+                TrenutnoStanje = Stanje.UMirovanju;
+            }
+        }
+
+        private void PranjeJeZavršilo()
+        {
+            TrenutnoStanje = Stanje.UMirovanju;
+        }
+
+        private void StisnutGumbZaProgram()
+        {
+            TrenutnoStanje = Stanje.OdabranProgram;
+        }
+
+        private void StisnutGumbStart()
+        {
+            TrenutnoStanje = Stanje.PranjeUToku;
+        }
+
+        private void StisniGumbPauseResume()
+        {
+            if (TrenutnoStanje == Stanje.Pauzirano)
+            {
+                TrenutnoStanje = Stanje.PranjeUToku;
+            }
+            else if (TrenutnoStanje == Stanje.PranjeUToku)
+            {
+                TrenutnoStanje = Stanje.Pauzirano;
+            }
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_Dishwasher
+{
+    public partial class FrmPerilica : Form
+    {
+        Perilica perilica = new Perilica();
+        public FrmPerilica()
+        {
+            InitializeComponent();
+        }
+
+        public void Osvjezi()
+        {
+            btn120min.Enabled = perilica.OdaberiProgram_Enabled;
+            btn60min.Enabled = perilica.OdaberiProgram_Enabled;
+            btn90min.Enabled = perilica.OdaberiProgram_Enabled;
+
+            btnPauzirajNastavi.Enabled = perilica.PauzirajNastavi_Enabled;
+            btnPranjeZavrsilo.Enabled = perilica.PranjeZavrsilo_Enabled;
+            btnStart.Enabled = perilica.Start_Enabled;
+            btnOnOff.Enabled = perilica.OnOff_Enabled;
+
+            txtStatus.Text = perilica.TrenutnoStanje.ToString();
+
+
+
+        }
+
+        private void FrmPerilica_Load(object sender, EventArgs e)
+        {
+            Osvjezi();
+        }
+
+        private void btnOnOff_Click(object sender, EventArgs e)
+        {
+            perilica.ObradiDogadaj(Perilica.Dogadjaj.StisnutGumbOnOff);
+            Osvjezi();
+        }
+
+        private void btn60min_Click(object sender, EventArgs e)
+        {
+            perilica.ObradiDogadaj(Perilica.Dogadjaj.StisnustGumbZaProgram);
+            Osvjezi();
+        }
+
+        private void btn90min_Click(object sender, EventArgs e)
+        {
+            perilica.ObradiDogadaj(Perilica.Dogadjaj.StisnustGumbZaProgram);
+            Osvjezi();
+        }
+
+        private void btn120min_Click(object sender, EventArgs e)
+        {
+            perilica.ObradiDogadaj(Perilica.Dogadjaj.StisnustGumbZaProgram);
+            Osvjezi();
+        }
+
+        private void btnStart_Click(object sender, EventArgs e)
+        {
+            perilica.ObradiDogadaj(Perilica.Dogadjaj.StisnustGumbStart);
+            Osvjezi();
+        }
+
+        private void btnPauzirajNastavi_Click(object sender, EventArgs e)
+        {
+            perilica.ObradiDogadaj(Perilica.Dogadjaj.StisniGumbPauseResume);
+            Osvjezi();
+        }
+
+        private void btnPranjeZavrsilo_Click(object sender, EventArgs e)
+        {
+            perilica.ObradiDogadaj (Perilica.Dogadjaj.PranjeJeZavršilo);
+            Osvjezi();
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_Dishwasher
+{
+    partial class Perilica
+    {
+        public string NazivPerilice { get; set; }
+        public ProgramRada Program { get; set; }
+
+        public bool OnOff_Enabled { get { return TrenutnoStanje == Stanje.Ugašena || TrenutnoStanje == Stanje.UMirovanju; } }
+
+        public bool Start_Enabled {  get { return TrenutnoStanje == Stanje.OdabranProgram; } }
+
+        public bool PauzirajNastavi_Enabled { get { return TrenutnoStanje == Stanje.PranjeUToku || TrenutnoStanje == Stanje.Pauzirano; } }
+
+        public bool PranjeZavrsilo_Enabled { get { return TrenutnoStanje == Stanje.PranjeUToku; } }
+
+        public bool OdaberiProgram_Enabled {  get { return TrenutnoStanje == Stanje.UMirovanju; } }
+
+
+
+
+        public Perilica()
+        {
+            NazivPerilice = "BOSCH GDS3429";
+            DefinirajMatricuPrijelazaStanja();
+        }
+
+        public void Upali()
+        {
+        }
+
+        public void Ugasi()
+        {
+        }
+
+        public void OdaberiProgram(ProgramRada odabraniProgram)
+        {
+            Program = odabraniProgram;
+        }
+
+        public void ZapocniPranje()
+        {
+        }
+
+        public void OznaciPranjeZavrsilo()
+        {
+        }
+
+        public void PauzirajPranje()
+        {
+
+        }
+
+        public void NastaviPranje()
+        {
+
+        }
+    }
+}
