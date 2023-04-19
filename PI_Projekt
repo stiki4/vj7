@@ -1,0 +1,259 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_PI_Projekt
+{
+    partial class Projekt
+    {
+        public string OpisTeme { get; set; }
+        public string OznakaTima { get; set; }
+        public DateTime DatumPredaje { get; set; }
+        public DateTime DatumObrane { get; set; }
+
+        public bool PredajProjektEnabled { get { return TrenutnoStanje == Stanje.TemaPrijavljena; } }
+
+        public bool OdbijProjektEnabled { get { return TrenutnoStanje == Stanje.PredanProjekt; } }
+
+        public bool PrihvatiProjektEnabled { get { return TrenutnoStanje == Stanje.PredanProjekt; } }
+
+        public bool ZakaziObranuEnabled { get { return TrenutnoStanje == Stanje.PrihvaćenProjekt; } }
+
+        public bool OznaciKaoObranjenEnabled { get { return TrenutnoStanje == Stanje.ZakazanaObrana; } }
+
+        public bool ZabiljeziTemuEnabled { get { return TrenutnoStanje == Stanje.NijePrijavljenaTema; } }
+
+
+        public Projekt()
+        {
+            DefinirajMatricuPrijelazaStanja();
+        }
+
+        public void ZabiljeziTemu(string opisTeme, string oznakaTima)
+        {
+            OpisTeme = opisTeme;
+            OznakaTima = oznakaTima;
+        }
+
+        public void PredajProjekt(DateTime datumPredaje)
+        {
+            DatumPredaje = datumPredaje;
+        }
+
+        public void OdbijProjekt()
+        {
+        }
+
+        public void PrihvatiProjekt()
+        {
+        }
+
+        public void ZakažiObranu(DateTime datumObrane)
+        {
+            DatumObrane = datumObrane;
+        }
+
+        public void OznačiKaoObranjen()
+        {
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_PI_Projekt
+{
+    partial class Projekt
+    {
+        public enum Stanje
+        {
+            NijePrijavljenaTema,
+            TemaPrijavljena,
+            PredanProjekt,
+            PrihvaćenProjekt,
+            ZakazanaObrana,
+            ObranjenProjekt
+        }
+
+        public enum Dogadjaj
+        {
+            TimPrijavioTemu,
+            DovršenProjekt,
+            ProjektNeZadovoljava,
+            ProjektZadovoljava,
+            OdabranTerminObrane,
+            UspješnaObrana
+        }
+
+        public Stanje TrenutnoStanje { get; set; }
+
+        private Action[,] strojStanja;
+
+        public void ObradiDogadjaj (Dogadjaj dogadaj)
+        {
+            this.strojStanja[(int)this.TrenutnoStanje, (int)dogadaj].Invoke();
+        }
+
+        private void DefinirajMatricuPrijelazaStanja()
+        {
+            TrenutnoStanje = Stanje.NijePrijavljenaTema;
+
+            strojStanja = new Action[5, 6]
+            //TimPrijavioTemu  DovršenProjekt  ProjektNeZadovoljava   ProjektZadovoljava  OdabranTerminObrane    UspješnaObrana
+            {
+                {TimPrijavioTemu,   null,                  null,                null,              null,               null }, //NijePrijavljenaTema
+                {null,              DovršenProjekt,        null,                null,              null,               null }, //TemaPrijavljena
+                {null,              null,                  ProjektNeZadovoljava,ProjektZadovoljava,null,               null }, //PredanProjekt
+                {null,              null,                  null,                null,              OdabranTerminObrane,null }, //PrihvaćenProjekt
+                {null,              null,                  null,                null,              null,         UspješnaObrana}, //ZakazanaObrana
+            };
+        }
+
+        private void TimPrijavioTemu()
+        {
+            TrenutnoStanje = Stanje.TemaPrijavljena;
+        }
+
+        private void DovršenProjekt()
+        {
+            TrenutnoStanje = Stanje.PredanProjekt;
+        }
+
+        private void ProjektNeZadovoljava()
+        {
+            TrenutnoStanje = Stanje.TemaPrijavljena;
+        }
+
+        private void ProjektZadovoljava()
+        {
+            TrenutnoStanje = Stanje.PrihvaćenProjekt;
+        }
+
+        private void OdabranTerminObrane()
+        {
+            TrenutnoStanje = Stanje.ZakazanaObrana;
+        }
+
+        private void UspješnaObrana()
+        {
+            TrenutnoStanje = Stanje.ObranjenProjekt;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_PI_Projekt
+{
+    public partial class FrmProjekt : Form
+    {
+        private Projekt _projekt;
+        public FrmProjekt()
+        {
+            InitializeComponent();
+        }
+
+
+        public void Osvjezi()
+        {
+            btnOdbijProjekt.Enabled = _projekt.OdbijProjektEnabled;
+            btnPrihvatiProjekt.Enabled = _projekt.PrihvatiProjektEnabled;
+            btnPredajProjekt.Enabled = _projekt.PredajProjektEnabled;
+            btnOznaciKaoObranjen.Enabled = _projekt.OznaciKaoObranjenEnabled;
+            btnZabiljeziTemu.Enabled = _projekt.ZabiljeziTemuEnabled;
+            btnZakaziObranu.Enabled = _projekt.ZakaziObranuEnabled;
+
+            txtOpisProjekta.Enabled = _projekt.ZabiljeziTemuEnabled;
+            txtOznakaTima.Enabled = _projekt.ZabiljeziTemuEnabled;
+
+            txtStatus.Text = _projekt.TrenutnoStanje.ToString();
+            dtpDatumObrane.Enabled = _projekt.ZakaziObranuEnabled;
+            dtpDatumPredaje.Enabled = _projekt.PredajProjektEnabled;
+        }
+        private void FrmProjekt_Load(object sender, EventArgs e)
+        {
+            _projekt = new Projekt();
+            Osvjezi();
+        }
+
+        private void btnZabiljeziTemu_Click(object sender, EventArgs e)
+        {
+            _projekt.ZabiljeziTemu(txtOpisProjekta.Text, txtOznakaTima.Text);
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.TimPrijavioTemu);
+            Osvjezi();
+        }
+
+        private void btnPredajProjekt_Click(object sender, EventArgs e)
+        {
+            _projekt.PredajProjekt(dtpDatumPredaje.Value);
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.DovršenProjekt);
+            Osvjezi();
+        }
+
+        private void btnOdbijProjekt_Click(object sender, EventArgs e)
+        {
+            _projekt.OdbijProjekt();
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.ProjektNeZadovoljava);
+            Osvjezi();
+        }
+
+        private void btnPrihvatiProjekt_Click(object sender, EventArgs e)
+        {
+            _projekt.PrihvatiProjekt();
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.ProjektZadovoljava);
+            Osvjezi();
+        }
+
+        private void btnZakaziObranu_Click(object sender, EventArgs e)
+        {
+            _projekt.ZakažiObranu(dtpDatumObrane.Value);
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.OdabranTerminObrane);
+            Osvjezi();
+        }
+
+        private void btnOznaciKaoObranjen_Click(object sender, EventArgs e)
+        {
+            _projekt.OznačiKaoObranjen();
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.UspješnaObrana);
+            Osvjezi();
+
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_PI_Projekt
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new FrmProjekt());
+        }
+    }
+}
