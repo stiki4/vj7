@@ -1,0 +1,241 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_RadniNalog
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new RadniNalogForm());
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_RadniNalog
+{
+    partial class RadniNalog
+    {
+        public string Opis { get; set; }
+        public DateTime DatumKreiranja { get; set; }
+        public DateTime DatumPredaje { get; set; }
+        public DateTime DatumPocetka { get; set; }
+        public DateTime DatumDovrsetka { get; set; }
+
+        public bool PredajNalog_Enabled { get { return TrenutnoStanje == Stanje.Zaključan; } }
+
+        public bool Otkazi_Enabled { get { return TrenutnoStanje == Stanje.Zaključan; } }
+
+        public bool Zakljucaj_Enabled { get { return TrenutnoStanje == Stanje.Kreiran; } }
+
+        public bool ZapocniProizvodnju_Enabled { get { return TrenutnoStanje == Stanje.PredanUProizvodnju; } }
+
+        public bool DovrsiProizvodnju_Enabled {  get { return TrenutnoStanje == Stanje.ZapočetaProizvodnja; } }
+
+        public RadniNalog()
+        {
+            DefinirajMatricuPrijelazaStanja();
+        }
+        public void ZakljucajNalog(string opis)
+        {
+            Opis = opis;
+            DatumKreiranja = DateTime.Now;
+        }
+
+        public void PredajUProizvodnju(DateTime datumPredaje)
+        {
+            DatumPredaje = DateTime.Now;
+        }
+
+        public void ZapocniProizvodnju(DateTime datumPocetka)
+        {
+            DatumPocetka = datumPocetka;
+        }
+
+        internal void DovrsiProizvodnju(DateTime datumDovrsetka)
+        {
+            DatumDovrsetka = datumDovrsetka;
+        }
+
+        public void OtkaziNalog()
+        {
+
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_RadniNalog
+{
+    public partial class RadniNalogForm : Form
+    {
+        private RadniNalog _radniNalog;
+        public RadniNalogForm()
+        {
+            InitializeComponent();
+        }
+
+        public void Osvjezi()
+        {
+            btnDovrsiProizvodnju.Enabled = _radniNalog.DovrsiProizvodnju_Enabled;
+            btnOtkaziNalog.Enabled = _radniNalog.Otkazi_Enabled;
+            btnPredajNalog.Enabled = _radniNalog.PredajNalog_Enabled;
+            btnZakljucaj.Enabled = _radniNalog.Zakljucaj_Enabled;
+            btnZapocniProizvodnju.Enabled = _radniNalog.ZapocniProizvodnju_Enabled;
+
+            dtpDatumPredaje.Enabled = _radniNalog.PredajNalog_Enabled;
+            dtpDatumPocetka.Enabled = _radniNalog.ZapocniProizvodnju_Enabled;
+            dtpDatumDovrsetka.Enabled = _radniNalog.DovrsiProizvodnju_Enabled;
+
+            txtStatus.Text = _radniNalog.TrenutnoStanje.ToString();
+            txtOpis.Enabled = _radniNalog.Zakljucaj_Enabled;
+         
+        }
+        private void RadniNalogForm_Load(object sender, EventArgs e)
+        {
+            _radniNalog = new RadniNalog();
+            Osvjezi();
+        }
+
+        private void btnZakljucaj_Click(object sender, EventArgs e)
+        {
+            _radniNalog.ZakljucajNalog(txtOpis.Text);
+            txtDatumKreiranja.Text = _radniNalog.DatumKreiranja.ToString();
+            _radniNalog.ObradiDogadaj(RadniNalog.Dogadjaj.SveStavkeDodane);
+            Osvjezi();
+        }
+
+        private void btnPredajNalog_Click(object sender, EventArgs e)
+        {
+            _radniNalog.PredajUProizvodnju(dtpDatumPredaje.Value);
+            _radniNalog.ObradiDogadaj(RadniNalog.Dogadjaj.PotvrdenaProizvodnja);
+            Osvjezi();
+        }
+
+        private void btnZapocniProizvodnju_Click(object sender, EventArgs e)
+        {
+            _radniNalog.ZapocniProizvodnju(dtpDatumPocetka.Value);
+            _radniNalog.ObradiDogadaj(RadniNalog.Dogadjaj.NalogPreuzet);
+            Osvjezi();
+        }
+
+        private void btnDovrsiProizvodnju_Click(object sender, EventArgs e)
+        {
+            _radniNalog.DovrsiProizvodnju(dtpDatumDovrsetka.Value);
+            _radniNalog.ObradiDogadaj(RadniNalog.Dogadjaj.ProizvedeneSveStavke);
+            Osvjezi();
+        }
+
+        private void btnOtkaziNalog_Click(object sender, EventArgs e)
+        {
+            _radniNalog.OtkaziNalog();
+            _radniNalog.ObradiDogadaj(RadniNalog.Dogadjaj.OdustajanjeOdProizvodnje);
+            Osvjezi();
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_RadniNalog
+{
+    partial class RadniNalog
+    {
+        public enum Stanje
+        {
+            Kreiran,
+            Zaključan,
+            PredanUProizvodnju,
+            ZapočetaProizvodnja,
+            Otkazan,
+            DovršenaProizvodnja
+        }
+
+        public enum Dogadjaj
+        {
+            SveStavkeDodane,
+            PotvrdenaProizvodnja,
+            NalogPreuzet,
+            OdustajanjeOdProizvodnje,
+            ProizvedeneSveStavke
+        }
+
+        public Stanje TrenutnoStanje { get; set; }
+
+        private Action[,] strojStanja;
+
+        public void ObradiDogadaj (Dogadjaj dogadaj)
+        {
+            this.strojStanja[(int)this.TrenutnoStanje, (int)dogadaj].Invoke();
+        }
+
+        public void DefinirajMatricuPrijelazaStanja()
+        {
+            TrenutnoStanje = Stanje.Kreiran;
+
+            strojStanja = new Action[6, 5]
+            {
+         //SveStavkeDodane   PotvrdenaProizvodnja  NalogPreuzet  OdustajanjeOdProizvodnje  ProizvedeneSveStavke
+                {SveStavkeDodane,   null,                 null,               null,                     null },  // Kreiran,
+                {null,              PotvrdenaProizvodnja, null,               OdustajanjeOdProizvodnje, null },  // Zaključan,
+                {null,              null,                 NalogPreuzet,       null,                     null }, //PredanUProizvodnju,
+                {null,              null,                 null,               null,                     ProizvedeneSveStavke }, //ZapočetaProizvodnja,
+                {null,              null,                 null,               null,                     null }, //Otkazan,
+                {null,              null,                 null,               null,                     null },  // DovršenaProizvodnja
+            };
+        }
+
+        private void SveStavkeDodane()
+        {
+            TrenutnoStanje = Stanje.Zaključan;
+        }
+
+        private void PotvrdenaProizvodnja()
+        {
+            TrenutnoStanje = Stanje.PredanUProizvodnju;
+        }
+
+        private void NalogPreuzet()
+        {
+            TrenutnoStanje = Stanje.ZapočetaProizvodnja;
+        }
+
+        private void OdustajanjeOdProizvodnje()
+        {
+            TrenutnoStanje = Stanje.Otkazan;
+        }
+
+        private void ProizvedeneSveStavke()
+        {
+            TrenutnoStanje = Stanje.DovršenaProizvodnja;
+        }
+    }
+}
