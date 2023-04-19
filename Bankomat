@@ -1,0 +1,258 @@
+using System;
+using System.Collections.Generic;
+using System.Windows.Forms;
+
+namespace Bankomat
+{
+    partial class Bankomat
+    {
+        public enum Stanje
+        {
+            Mirovanje,
+            ProvjeraPina,
+            OdabirIznosaZaIsplatu,
+            IsplataGotovine,
+            BlokiranRačun
+        }
+
+        public enum Dogadjaj
+        {
+            KARTICA_UMETNUTA,
+            PIN_UNESEN,
+            IZNOS_UNESEN,
+            ISPLATA_GOTOVA,
+            ODUSTANI
+        }
+
+        public Stanje TrenutnoStanje { get; set; }
+        private Action[,] strojStanja;
+
+        public void ObradiDogadjaj(Dogadjaj dogadaj)
+        {
+            this.strojStanja[(int)this.TrenutnoStanje, (int)dogadaj].Invoke();
+        }
+
+        private void DefinirajMatricuPrijelazaStanja()
+        {
+            TrenutnoStanje = Stanje.Mirovanje;
+
+            //TODO - Dopuniti konačnu matricu prijelaza stanja s pozivom odgovarajućih metoda
+            //Metode su već popisane ispod, te ih treba samo pozvati, a metoda IznosUnesen je 
+            //već implementirana kako bi poslužila kao primjer
+            strojStanja = new Action[4, 5]
+            {
+                //KARTICA_UMETNUTA  //PIN UNESEN    //IZNOS UNESEN  //ISPLATA_GOTOVA    //ODUSTANI
+                {KarticaUmetnuta,              null,           null,           null,               null},      //Mirovanje
+                {null,              PinUnesen,           null,           null,               Odustani},      //ProvjeraPina
+                {null,              null,           IznosUnesen,           null,               Odustani},      //OdabirIznosaZaIsplatu
+                {null,              null,           null,           IsplataGotova,               null},      //IsplataGotovine
+            };
+        }
+
+        private void KarticaUmetnuta()
+        {
+            TrenutnoStanje = Stanje.ProvjeraPina;
+        }
+
+        private void PinUnesen()
+        {
+           if (Pin == IspravanPin)
+            {
+                TrenutnoStanje = Stanje.OdabirIznosaZaIsplatu; 
+            }
+           else if (Pin != IspravanPin && Pogreske < 3)
+            {
+                Pogreske++;
+                MessageBox.Show("Pogrešan pin!");
+                TrenutnoStanje = Stanje.ProvjeraPina;
+            }
+           if (Pogreske == 3)
+            {
+                TrenutnoStanje = Stanje.BlokiranRačun;
+            }
+        }
+
+        private void IznosUnesen()
+        {
+            if (Iznos <= MaxIznos)
+            {
+                TrenutnoStanje = Stanje.IsplataGotovine;
+            }
+            else
+            {
+                MessageBox.Show("Nedovoljno sredstava!");
+            }
+        }
+
+        private void IsplataGotova()
+        {
+            TrenutnoStanje = Stanje.Mirovanje;
+        }
+
+        private void Odustani()
+        {
+           if (TrenutnoStanje == Stanje.ProvjeraPina)
+            {
+                TrenutnoStanje = Stanje.Mirovanje;
+            }
+           if (TrenutnoStanje == Stanje.OdabirIznosaZaIsplatu)
+            {
+                TrenutnoStanje = Stanje.Mirovanje;
+            }
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using static Bankomat.Bankomat;
+
+namespace Bankomat
+{
+    public partial class frmBankomat : Form
+    {
+        Bankomat bankomat;
+
+        public frmBankomat()
+        {
+            InitializeComponent();
+            bankomat = new Bankomat();
+            OsvjeziSucelje();
+        }
+
+        private void OsvjeziSucelje()
+        {
+            btnKartica.Enabled = bankomat.Kartica_Enabled;
+
+            lblPin.Enabled = bankomat.Pin_Enabled;
+            txtPin.Enabled = bankomat.Pin_Enabled;
+            btnPin.Enabled = bankomat.Pin_Enabled;
+
+            lblIznos.Enabled = bankomat.Iznos_Enabled;
+            txtIznos.Enabled = bankomat.Iznos_Enabled;
+            btnIznos.Enabled = bankomat.Iznos_Enabled;
+
+            lblIspravanPIN.Visible = bankomat.Pin_Enabled;
+            lblIspravanPIN2.Visible = bankomat.Pin_Enabled;
+            lblIspravanPIN2.Text = bankomat.IspravanPin.ToString();
+
+            lblMaxIznos.Visible = bankomat.Iznos_Enabled;
+            lblMaxIznos2.Visible = bankomat.Iznos_Enabled;
+            lblMaxIznos2.Text = bankomat.MaxIznos.ToString("N2");
+
+            btnOdustani.Enabled = bankomat.Odustani_Enabled;
+            btnIsplati.Enabled = bankomat.Isplata_Enabled;
+
+            lblStanje.Text = bankomat.TrenutnoStanje.ToString();
+
+            Application.DoEvents();
+        }
+
+        private void btnKartica_Click(object sender, EventArgs e)
+        {
+            bankomat.ObradiDogadjaj(Dogadjaj.KARTICA_UMETNUTA);
+            OsvjeziSucelje();
+        }
+
+        private void btnPin_Click(object sender, EventArgs e)
+        {
+            bankomat.ObradiDogadjaj(Dogadjaj.PIN_UNESEN);
+            OsvjeziSucelje();
+
+        }
+
+        private void btnIznos_Click(object sender, EventArgs e)
+        {
+            bankomat.ObradiDogadjaj(Dogadjaj.IZNOS_UNESEN);
+            OsvjeziSucelje();
+        }
+
+        private void btnOdustani_Click(object sender, EventArgs e)
+        {
+            bankomat.ObradiDogadjaj(Dogadjaj.ODUSTANI);
+            OsvjeziSucelje();
+        }
+
+        private void btnIsplati_Click(object sender, EventArgs e)
+        {
+            bankomat.ObradiDogadjaj(Dogadjaj.ISPLATA_GOTOVA);
+            OsvjeziSucelje();
+        }
+
+        private void txtPin_TextChanged(object sender, EventArgs e)
+        {
+            int pin = 0;
+            int.TryParse(txtPin.Text, out pin);
+            bankomat.Pin = pin;
+        }
+
+        private void txtIznos_TextChanged(object sender, EventArgs e)
+        {
+            float iznos = 0;
+            float.TryParse(txtIznos.Text, out iznos);
+            bankomat.Iznos = iznos;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Bankomat
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new frmBankomat());
+        }
+    }
+}
+
+using System;
+using System.Windows.Forms;
+
+namespace Bankomat
+{
+    partial class Bankomat
+    {
+        public float Iznos { get; set; }
+        public float MaxIznos  { get; private set; }
+        public int Pin { get; set; }
+        public int IspravanPin { get; private set; }
+
+        private int Pogreske = 0;
+
+        public bool Kartica_Enabled { get { return TrenutnoStanje == Stanje.Mirovanje; } }
+        public bool Pin_Enabled { get { return TrenutnoStanje == Stanje.ProvjeraPina; } }
+        public bool Odustani_Enabled { get { return TrenutnoStanje == Stanje.ProvjeraPina || TrenutnoStanje == Stanje.OdabirIznosaZaIsplatu;  } }
+        public bool Iznos_Enabled { get { return TrenutnoStanje == Stanje.OdabirIznosaZaIsplatu; } }
+        public bool Isplata_Enabled { get { return TrenutnoStanje == Stanje.IsplataGotovine; } }
+
+        public Bankomat()
+        {
+            //Generate test data
+            Random g = new Random();
+            IspravanPin = g.Next(1000, 9999);
+            MaxIznos = g.Next(100, 1000);
+
+            DefinirajMatricuPrijelazaStanja();
+        }
+    }
+}
