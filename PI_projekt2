@@ -1,0 +1,264 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_PI_Projekt
+{
+    partial class Projekt
+    {
+        public string OpisTeme { get; set; }
+        public string OznakaTima { get; set; }
+        public DateTime DatumPredajePrveFaze { get; set; }
+        public DateTime DatumPredajeCijelogProjekta { get; set; }
+        public int BrojBodova { get; set; }
+
+        public bool OdbijTemu_Enabled { get { return TrenutnoStanje == Stanje.TemaPrijavljena; } }
+
+        public bool PrihvatiTemu_Enabled { get { return TrenutnoStanje == Stanje.TemaPrijavljena; } }
+
+        public bool Predaj1_Enabled { get { return TrenutnoStanje == Stanje.TemaPrihvaćena; } }
+
+        public bool Predaj2_Enabled { get { return TrenutnoStanje == Stanje.PredanaPrvaFaza; } }
+
+        public bool Ocijeni_Enabled { get { return TrenutnoStanje == Stanje.ProjektPredan; } }
+
+        public bool ZabiljeziTemu_Enabled { get { return TrenutnoStanje == Stanje.TemaNijePrijavljena; } }
+
+        public Projekt()
+        {
+            DefinirajMatricuPrijelazaStanja();
+        }
+
+        public void ZabiljeziTemu(string opisTeme, string oznakaTima)
+        {
+            OpisTeme = opisTeme;
+            OznakaTima = oznakaTima;
+        }
+
+        public void PredajPrvuFazu(DateTime datumPredaje)
+        {
+            DatumPredajePrveFaze = datumPredaje;
+        }
+
+        public void OdbijTemu()
+        {
+        }
+
+        public void PrihvatiTemu()
+        {
+        }
+
+        public void PredajCijeliProjekt(DateTime datumObrane)
+        {
+            DatumPredajeCijelogProjekta = datumObrane;
+        }
+
+        public void OcijeniProjekt(int brojBodova)
+        {
+            BrojBodova = brojBodova;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_PI_Projekt
+{
+    partial class Projekt
+    {
+        public enum Stanje
+        {
+            TemaNijePrijavljena,
+            TemaPrijavljena,
+            TemaPrihvaćena,
+            PredanaPrvaFaza,
+            ProjektPredan,
+            ProjektOcijenjen
+        }
+
+        public enum Dogadjaj
+        {
+            TimPrijavioTemu,
+            TemaNijeDobra,
+            TemaJeUredu,
+            StigaoRokZa1Fazu,
+            StigaoFinalniRok,
+            OdrzanaObrana
+        }
+
+        public Stanje TrenutnoStanje { get; set; }
+        private Action[,] strojStanja;
+
+        public void ObradiDogadjaj (Dogadjaj dogadaj)
+        {
+            this.strojStanja[(int)this.TrenutnoStanje, (int)dogadaj].Invoke();
+        }
+
+        private void DefinirajMatricuPrijelazaStanja()
+        {
+            TrenutnoStanje = Stanje.TemaNijePrijavljena;
+
+            strojStanja = new Action[6, 6]
+
+            {
+         //TimPrijavioTemu      TemaNijeDobra        TemaJeUredu     StigaoRokZa1Fazu    StigaoFinalniRok       OdržanaObrana
+                {TimPrijavioTemu,   null,               null,               null,               null,               null }, //TemaNijePrijavljena
+                {null,              TemaNijeDobra,      TemaJeUredu,        null,               null,               null }, //TemaPrijavljena
+                {null,              null,               null,               StigaoRokZa1Fazu,   null,               null }, //TemaPrihvacena
+                {null,              null,               null,               null,               StigaoFinalniRok,   null }, //PredanaPrvaFaza
+                {null,              null,               null,               null,               null,               OdrzanaObrana}, //ProjektPredan
+                {null,              null,               null,               null,               null,               null } //ProjektOcijenjen
+            };
+        }
+
+        private void TimPrijavioTemu()
+        {
+            TrenutnoStanje = Stanje.TemaPrijavljena;
+        }
+
+        private void TemaNijeDobra()
+        {
+            TrenutnoStanje = Stanje.TemaNijePrijavljena;
+        }
+
+        private void TemaJeUredu()
+        {
+            TrenutnoStanje = Stanje.TemaPrihvaćena;
+
+        }
+
+        private void StigaoRokZa1Fazu()
+        {
+            TrenutnoStanje = Stanje.PredanaPrvaFaza;
+        }
+
+        private void StigaoFinalniRok()
+        {
+            TrenutnoStanje = Stanje.ProjektPredan;
+        }
+
+        private void OdrzanaObrana()
+        {
+            TrenutnoStanje = Stanje.ProjektOcijenjen;
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_PI_Projekt
+{
+    public partial class FrmProjekt : Form
+    {
+        private Projekt _projekt;
+        public FrmProjekt()
+        {
+            InitializeComponent();
+        }
+
+        public void Osvjezi()
+        {
+            btnOdbijTemu.Enabled = _projekt.OdbijTemu_Enabled;
+            btnOcijeniProjekt.Enabled = _projekt.Ocijeni_Enabled;
+            btnPredajCijeliProjekt.Enabled = _projekt.Predaj2_Enabled;
+            btnPredajPrvuFazu.Enabled = _projekt.Predaj1_Enabled;
+            btnPrihvatiTemu.Enabled = _projekt.PrihvatiTemu_Enabled;
+            btnZabiljeziTemu.Enabled = _projekt.ZabiljeziTemu_Enabled;
+
+            txtStatus.Text = _projekt.TrenutnoStanje.ToString();
+
+            txtOpisTeme.Enabled = _projekt.ZabiljeziTemu_Enabled;
+            txtOznakaTima.Enabled = _projekt.ZabiljeziTemu_Enabled;
+
+            txtBrojBodova.Enabled = _projekt.Ocijeni_Enabled;
+
+            dtpDatumPrveFaze.Enabled = _projekt.Predaj1_Enabled;
+            dtpDatumPredajeCijelogProjekta.Enabled = _projekt.Predaj2_Enabled;
+        }
+
+        private void FrmProjekt_Load(object sender, EventArgs e)
+        {
+            _projekt = new Projekt();
+            Osvjezi();
+        }
+
+        private void btnZabiljeziTemu_Click(object sender, EventArgs e)
+        {
+            _projekt.ZabiljeziTemu(txtOpisTeme.Text, txtOznakaTima.Text);
+            _projekt.ObradiDogadjaj (Projekt.Dogadjaj.TimPrijavioTemu);
+            Osvjezi();
+        }
+
+        private void btnPredajPrvuFazu_Click(object sender, EventArgs e)
+        {
+            _projekt.PredajPrvuFazu(dtpDatumPrveFaze.Value);
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.StigaoRokZa1Fazu);
+            Osvjezi();
+        }
+
+        private void btnOdbijTemu_Click(object sender, EventArgs e)
+        {
+            _projekt.OdbijTemu();
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.TemaNijeDobra);
+            Osvjezi();
+        }
+
+        private void btnPrihvatiTemu_Click(object sender, EventArgs e)
+        {
+            _projekt.PrihvatiTemu();
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.TemaJeUredu);
+            Osvjezi();
+        }
+
+        private void btnPredajCijeliProjekt_Click(object sender, EventArgs e)
+        {
+            _projekt.PredajCijeliProjekt(dtpDatumPredajeCijelogProjekta.Value);
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.StigaoFinalniRok);
+            Osvjezi();
+        }
+
+        private void btnOcijeni_Click(object sender, EventArgs e)
+        {
+            _projekt.OcijeniProjekt(int.Parse(txtBrojBodova.Text));
+            _projekt.ObradiDogadjaj(Projekt.Dogadjaj.OdrzanaObrana);
+            Osvjezi();
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_PI_Projekt
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new FrmProjekt());
+        }
+    }
+}
