@@ -1,0 +1,256 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_Reklamacija
+{
+    partial class Reklamacija
+    {
+        public int Id { get; set; }
+        public string Opis { get; set; }
+
+        public string Agent { get; private set; }
+
+        public bool DodijeliAgenta_Enabled {  get { return TrenutnoStanje == Stanje.Podnesena; } }
+
+        public bool Ocijeni_Enabled {  get { return TrenutnoStanje == Stanje.URazmatranju; } }
+
+        public bool Obradi_Enabled { get { return TrenutnoStanje == Stanje.Odbijena; } }
+
+        public Reklamacija()
+        {
+            DefinirajStanjaMatrice();
+        }
+
+        public void DodijeliAgenta(string agent)
+        {
+            Agent = agent;
+        }
+
+        public void Prihvati()
+        {
+            PosaljiObavijest("Vaša reklamacija je uvažena.");
+        }
+
+        private void PosaljiObavijest(string poruka)
+        {
+            //Šalje mail korisniku... NE TREBA IMPLEMENTIRATI
+        }
+
+        public void Odbij()
+        {
+            PosaljiObavijest("Vaša reklamacija je odbijena. Imate 3 dana za žalbu na tu odluku.");
+        }
+
+        public void KonačnoOdbij()
+        {
+            PosaljiObavijest("Vaša reklamacija je konačno odbijena. Više nemate mogućnost žalbe.");
+        }
+
+        public void VratiUPostupak()
+        {
+
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_Reklamacija
+{
+    public partial class ReklamacijaForm : Form
+    {
+        private Reklamacija _reklamacija;
+        public ReklamacijaForm()
+        {
+            InitializeComponent();
+        }
+
+        public void Osvjezi()
+        {
+            btnDodijeliAgenta.Enabled = _reklamacija.DodijeliAgenta_Enabled;
+
+            btnObradiŽalbu.Enabled = _reklamacija.Obradi_Enabled;
+
+            btnOcijeni.Enabled = _reklamacija.Ocijeni_Enabled;
+
+            txtAgent.Enabled = _reklamacija.DodijeliAgenta_Enabled;
+
+            txtStatusReklamacije.Text = _reklamacija.TrenutnoStanje.ToString();
+
+            rbNeutemeljen.Enabled = _reklamacija.Ocijeni_Enabled;
+            rbNijePristigla.Enabled = _reklamacija.Obradi_Enabled;
+            rbPristigla.Enabled = _reklamacija.Obradi_Enabled;
+            radOpravdana.Enabled = _reklamacija.Ocijeni_Enabled;
+            
+        }
+
+        private void ReklamacijaForm_Load(object sender, EventArgs e)
+        {
+            _reklamacija = new Reklamacija
+            {
+                Id = 1112,
+                Opis = "Tablet je stigao sa puknutim ekranom..."
+            };
+
+            txtIdReklamacije.Text = _reklamacija.Id.ToString();
+            txtOpisReklamacije.Text = _reklamacija.Opis;
+            Osvjezi();
+        }
+
+        private void btnDodijeliAgenta_Click(object sender, EventArgs e)
+        {
+            _reklamacija.DodijeliAgenta(txtAgent.Text);
+            _reklamacija.ObradiDogadaj(Reklamacija.Dogadjaj.ReklamacijaDoslaNaRed);
+            Osvjezi();
+        }
+
+        private void btnOcijeni_Click(object sender, EventArgs e)
+        {
+            if (radOpravdana.Checked == true)
+            {
+                _reklamacija.Prihvati();
+                _reklamacija.ObradiDogadaj(Reklamacija.Dogadjaj.ReklamacijaOpravdana);
+                
+               
+            }
+            else
+            {
+                _reklamacija.ObradiDogadaj(Reklamacija.Dogadjaj.ReklamacijaNeopravdana);
+                _reklamacija.Odbij();
+                
+            }
+            Osvjezi();
+        }
+
+        private void btnObradiŽalbu_Click(object sender, EventArgs e)
+        {
+            if (rbPristigla.Checked == true)
+            {
+                _reklamacija.VratiUPostupak();
+                _reklamacija.ObradiDogadaj(Reklamacija.Dogadjaj.PristiglaZalbaDa);
+            }
+            else
+            {
+                _reklamacija.KonačnoOdbij();
+                _reklamacija.ObradiDogadaj(Reklamacija.Dogadjaj.PristiglaZalbaNe);
+            }
+            Osvjezi();
+        }
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace STATE_Reklamacija
+{
+    partial class Reklamacija
+    {
+        public enum Stanje
+        {
+            Podnesena,
+            URazmatranju,
+            Uvazena,
+            Odbijena,
+            KonacnoOdbijena
+        }
+
+        public enum Dogadjaj
+        {
+            PristiglaZalbaDa,
+            PristiglaZalbaNe,
+            ReklamacijaDoslaNaRed,
+            ReklamacijaOpravdana,
+            ReklamacijaNeopravdana,
+        }
+
+        public Stanje TrenutnoStanje { get; set; }
+
+        private Action[,] stanjeStroja;
+
+        public void ObradiDogadaj (Dogadjaj dogadaj)
+        {
+            this.stanjeStroja[(int)this.TrenutnoStanje, (int)dogadaj].Invoke();
+        }
+
+        private void DefinirajStanjaMatrice()
+        {
+            TrenutnoStanje = Stanje.Podnesena;
+
+            stanjeStroja = new Action[5, 5]
+            {
+           //PristiglaZalbaDa       PristiglaZalbaNe     ReklamacijaDoslaNaRed     ReklamacijaOpravdana   ReklamacijaNepravdana
+                {null,                  null,                   ReklamacijaDoslaNaRed,  null,                   null  },    //Podnesena
+                {null,                  null,                   null,                   ReklamacijaOpravdana,   ReklamacijaNeopravdana  },    //URazmatranju
+                {null,                  null,                   null,                   null,                   null  },    //Uvazena
+                {PristiglaZalbaDa,      PristiglaZalbaNe,       null,                   null,                   null  },   //Odbijena
+                {null,                  null,                   null,                   null,                   null  },  //KonacnoOdbijena
+            };
+        }
+
+        private void PristiglaZalbaDa()
+        {
+            TrenutnoStanje = Stanje.Podnesena;
+        }
+
+        private void PristiglaZalbaNe()
+        {
+            TrenutnoStanje = Stanje.KonacnoOdbijena;
+        }
+
+        private void ReklamacijaDoslaNaRed()
+        {
+            TrenutnoStanje = Stanje.URazmatranju;
+        }
+
+        private void ReklamacijaOpravdana()
+        {
+            TrenutnoStanje = Stanje.Uvazena;
+        }
+
+        private void ReklamacijaNeopravdana()
+        {
+            TrenutnoStanje = Stanje.Odbijena;
+        }
+
+
+
+    }
+}
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace STATE_Reklamacija
+{
+    static class Program
+    {
+        /// <summary>
+        /// The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new ReklamacijaForm());
+        }
+    }
+}
